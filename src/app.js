@@ -1,7 +1,7 @@
 import express from 'express';
 import { MongoClient } from 'mongodb';
 import Joi from 'joi';
-import { configDotenv } from 'dotenv';
+import { config } from 'dotenv';
 
 const app = express();
 const Joi = require('joi');
@@ -22,7 +22,7 @@ const userSchema = Joi.object({
       console.log('Connected to MongoDB');
     } catch (err) {
       console.error('Error connecting to MongoDB:', err);
-      process.exit(1);  // Exit if we can't connect to the database
+      process.exit(1);
     }
   }
 
@@ -110,7 +110,32 @@ const userSchema = Joi.object({
     }
   });
 
+  app.put('/tweets/:id', async (req, res) => {
+    const { id } = req.params
+    const { username, tweet } = req.body
   
+    const { error } = tweetSchema.validate({ username, tweet })
+    if (error) return res.status(422).send("Dados inválidos")
+  
+    try {
+
+      const existingTweet = await db.collection('tweets').findOne({ _id: new ObjectId(id) })
+  
+      if (!existingTweet) {
+        return res.status(404).send("Tweet não encontrado")
+      }
+  
+      await db.collection('tweets').updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { username, tweet } }
+      )
+  
+      res.sendStatus(204)
+    } catch (err) {
+      console.error(err)
+      res.sendStatus(500)
+    }
+  });
   
 
 
