@@ -82,21 +82,36 @@ const userSchema = Joi.object({
   })
 
 
-app.get('/items/:id', (req, res) =>{
-  const id = parseInt(req.params.id);
+  app.get('/tweets', async (req, res) => {
+    try {
+      const tweets = await db
+        .collection('tweets')
+        .find()
+        .sort({ _id: -1 })
+        .toArray()
+  
+      const enrichedTweets = await Promise.all(
+        tweets.map(async (tweet) => {
+          const user = await db.collection('users').findOne({ username: tweet.username })
+  
+          return {
+            _id: tweet._id,
+            username: tweet.username,
+            avatar: user?.avatar || '',
+            tweet: tweet.tweet
+          }
+        })
+      )
+  
+      res.send(enrichedTweets)
+    } catch (err) {
+      console.error(err)
+      res.sendStatus(500)
+    }
+  });
 
-  if (isNaN(id) || id < 0) {
-    return res.status(400).json({ error: "ID inválido." });
-  }
-
-  const item = items.find((item) => item.id === id);
-
-  if (!item) {
-    return res.status(404).json({ error: "Não há nenhum item com este id." });
-  }
-
-  res.status(200).json(item);
-});
+  
+  
 
 
 app.listen(PORT, () => {
