@@ -57,17 +57,29 @@ const userSchema = Joi.object({
   });
   
 
-app.get('/items', (req, res) =>{
-  const { type } = req.query;
-
-  if (type) {
-    const filteredItems = items.filter(item => item.type === type);
-    return res.status(200).json(filteredItems);
-  }
-
-  res.status(200).json(items);
-
-});
+  app.post('/tweets', async (req, res) => {
+    const { username, tweet } = req.body
+  
+    const { error } = tweetSchema.validate({ username, tweet })
+    if (error) return res.status(422).send("Dados inválidos")
+  
+    try {
+     
+      const userExists = await db.collection('users').findOne({ username })
+  
+      if (!userExists) {
+        return res.status(401).send("Usuário não autorizado")
+      }
+  
+    
+      await db.collection('tweets').insertOne({ username, tweet })
+  
+      res.status(201).send("Tweet criado com sucesso")
+    } catch (err) {
+      console.error(err)
+      res.sendStatus(500)
+    }
+  })
 
 
 app.get('/items/:id', (req, res) =>{
