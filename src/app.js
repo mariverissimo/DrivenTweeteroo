@@ -1,46 +1,61 @@
 import express from 'express';
+import { MongoClient } from 'mongodb';
+import Joi from 'joi';
+import { configDotenv } from 'dotenv';
+
 const app = express();
-const PORT = 5000;
-
-const items = [];
-
-let currentId = 1;
+const Joi = require('joi');
+require('dotenv').config();
+const PORT = process.env.PORT;
+const client = new MongoClient(process.env.DATABASE_URL);
 
 app.use(express.json());
 
-app.post('/items', (req, res) =>{
-  const {name, quantity, type} = req.body;
-
-  if (name === "" || type === "" || quantity === 0){
-    return res.status(422).json({ error: "Erro. Verifique se as informações estão preenchidas corretamente." });
-  }
-
- if (typeof name !== "string" || typeof type !== "string") {
-  return res.status(400).json({ error: "Por favor, somente letras e espaço para escrever o nome e tipo de item." });
-}
-
-if (!Number.isInteger(quantity)) {
-  return res.status(400).json({ error: "Por favor, somente números ao declarar a quantidade que gostaria." });
-}
-
-const itemExists = items.find((item) => item.name === name);
-  if (itemExists) {
-    return res.status(409).json({ error: "Este item já está na lista." });
-  }
-
-const novoitem = {
-  id: currentId++,
-  name, 
-  quantity, 
-  type
- }
-
- items.push(novoitem);
-
-  res.status(201).json({
-    item: novoitem,
+const userSchema = Joi.object({
+    username: Joi.string().required(),
+    avatar: Joi.string().uri().required(),
   });
-})
+
+  async function connectDB() {
+    try {
+      await client.connect();
+      console.log('Connected to MongoDB');
+    } catch (err) {
+      console.error('Error connecting to MongoDB:', err);
+      process.exit(1);  // Exit if we can't connect to the database
+    }
+  }
+
+  connectDB();
+
+  app.post('/sign-up', async (req, res) => {
+    const { error, value } = userSchema.validate(req.body);
+  
+    if (error) {
+      return res.status(422).send({ error: error.details[0].message });
+    }
+  
+    const { username, avatar } = value;
+  
+    try {
+      const db = client.db();
+      const usersCollection = db.collection('users');
+  
+      
+      const existingUser = await usersCollection.findOne({ username });
+      if (existingUser) {
+        return res.status(409).send({ error: 'User already exists' });
+      }
+  
+      const result = await usersCollection.insertOne({ username, avatar });
+  
+      return res.status(201).send({ message: 'User created successfully', userId: result.insertedId });
+    } catch (err) {
+      console.error('Error saving user:', err);
+      return res.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
+  
 
 app.get('/items', (req, res) =>{
   const { type } = req.query;

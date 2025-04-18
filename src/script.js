@@ -1,5 +1,5 @@
 let _username = "";
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = process.env.BACKEND_URL;
 
 function signUp() {
   const username = document.querySelector("#username").value;
