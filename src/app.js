@@ -2,6 +2,7 @@ import express from 'express';
 import { MongoClient } from 'mongodb';
 import Joi from 'joi';
 import { config } from 'dotenv';
+import { ObjectId } from 'mongodb'
 
 const app = express();
 const Joi = require('joi');
@@ -129,6 +130,26 @@ const userSchema = Joi.object({
         { _id: new ObjectId(id) },
         { $set: { username, tweet } }
       )
+  
+      res.sendStatus(204)
+    } catch (err) {
+      console.error(err)
+      res.sendStatus(500)
+    }
+  });
+
+  app.delete('/tweets/:id', async (req, res) => {
+    const { id } = req.params
+  
+    try {
+  
+      const existingTweet = await db.collection('tweets').findOne({ _id: new ObjectId(id) })
+  
+      if (!existingTweet) {
+        return res.status(404).send("Tweet não encontrado")
+      }
+  
+      await db.collection('tweets').deleteOne({ _id: new ObjectId(id) })
   
       res.sendStatus(204)
     } catch (err) {
