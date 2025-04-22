@@ -5,16 +5,21 @@ import { config } from 'dotenv';
 import { ObjectId } from 'mongodb'
 
 const app = express();
-const Joi = require('joi');
-require('dotenv').config();
+config();
 const PORT = process.env.PORT;
 const client = new MongoClient(process.env.DATABASE_URL);
+const db = client.db();
 
 app.use(express.json());
 
 const userSchema = Joi.object({
     username: Joi.string().required(),
     avatar: Joi.string().uri().required(),
+  });
+  
+  const tweetSchema = Joi.object({
+    username: Joi.string().required(),
+    tweet: Joi.string().required(),
   });
 
   async function connectDB() {
@@ -39,7 +44,6 @@ const userSchema = Joi.object({
     const { username, avatar } = value;
   
     try {
-      const db = client.db();
       const usersCollection = db.collection('users');
   
       
